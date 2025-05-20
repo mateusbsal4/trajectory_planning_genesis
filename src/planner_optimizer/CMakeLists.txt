@@ -10,6 +10,7 @@ catkin_package()
 
 catkin_install_python(PROGRAMS
   scripts/bayesian_optimizer.py
+  scripts/check_labels.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

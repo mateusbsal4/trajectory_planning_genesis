@@ -43,7 +43,7 @@ def create_scene_from_config(config):
             camera_fov=60, max_FPS=60
         ),
         sim_options=gs.options.SimOptions(dt=0.01),
-        show_viewer=True, show_FPS=False
+        show_viewer=False, show_FPS=False
     )
     scene.add_entity(gs.morphs.Plane())
     cam = scene.add_camera(res=(640,480), pos=(3,0,1.0), lookat=(0,0,0.5), fov=60, GUI=False)
@@ -204,9 +204,18 @@ def setup_task(randomize=False, config_filename=None, include_in_dataset=False, 
         # Random goal
         goal_pos = [
             np.random.uniform(0.2,0.6),
-            np.random.uniform(0.2,0.5),
-            np.random.uniform(cube_center[2], cube_center[2]+0.2)
+            np.random.uniform(-0.4,desk_center_y - desk_size[1]/2 - 0.1),
+            np.random.uniform(base_box_height/2, wall_height/2)
         ]
+        base = np.array([0.0, 0.0, base_box_height])
+        # Ensure goal position is within the robot´s reachable WS
+        if np.linalg.norm(goal_pos - base) > 1.0:
+            axis = np.random.choice([0, 1, 2])   
+            diff = np.array(goal_pos) - base
+            other_sq = diff[(axis+1)%3]**2 + diff[(axis+2)%3]**2
+            goal_pos[axis] = float((np.sqrt(1 - other_sq) + base[axis])*np.sign(goal_pos[axis]))
+
+
         # Save YAML config
         config = {
             'n_floating_primitives': n_floating_primitives,
@@ -221,7 +230,7 @@ def setup_task(randomize=False, config_filename=None, include_in_dataset=False, 
         }
         # Add random floating primitive shapes
         for p in range(n_floating_primitives):
-            x_range = (0.0, 1.0)
+            x_range = (0.2, 1.0)            #cant start at 0.0 otherwise obstacles might intersect with the robot
             y_range = (-2.0, desk_center_y - desk_size[1]/2)
             z_range = (0.0, wall_height)
             config['pose_cuboid'+str(p)] = (np.random.uniform(*x_range), np.random.uniform(*y_range), np.random.uniform(*z_range),

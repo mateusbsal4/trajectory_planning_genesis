@@ -5,7 +5,6 @@
   <arg name="recreate" default="true" />
   <arg name="scene" default="base_scene" />
   <arg name="dataset_scene" default="false" />
-  <!-- Pass the arguments to the node -->
   <node pkg="genesis_inverse_kinematics" type="IK_pmaf.py" name="ik_genesis_node" output="screen">
     <param name="recreate" value="$(arg recreate)" />
     <param name="scene" value="$(arg scene)" />

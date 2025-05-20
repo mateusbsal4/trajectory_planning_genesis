@@ -1,7 +1,7 @@
 perception_pipeline_config:
-  scene_bounds: 
-    min: [-4.0, -4.0, -4.0]
-    max: [4.0, 4.0, 4.0]
+  scene_bounds:
+    min: [-4.0, -2.5, -4.0]
+    max: [4.0, 2.5, 4.0]
   voxel_props:
     cubic_size: 4.0 # in metres
     voxel_resolution: 50.0 # voxels in 'cubic_size'

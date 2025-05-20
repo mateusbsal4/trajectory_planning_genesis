@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 # ---------------------------
 # Branin objective function
 # ---------------------------
-def branin_objective(x: pd.DataFrame) -> np.ndarray:
+def branin_objective(x  : pd.DataFrame) -> np.ndarray:
     """
     Compute the Branin function for each input (x0, x1) provided as a DataFrame.
     """
@@ -120,7 +120,7 @@ print('HEBO RF Batch time: %.2f seconds' % (time.time() - start_time))
 
 
 # ---------------------------
-# HEBO SVGP Batch Loop
+# HEBO SVIDKL Batch Loop
 # ---------------------------
 hebo_svgp_batch = HEBO(space, model_name='svgp', rand_sample=4)
 last_hebo_svgp_batch_rec = None
@@ -141,7 +141,7 @@ print('HEBO SVGP Batch time: %.2f seconds' % (time.time() - start_time))
 
 # ---------------------------
 # Compute the cumulative minimum (regret) over iterations
-# ---------------------------
+# ---------------------------   
 conv_bo_seq         = np.minimum.accumulate(bo.y)
 conv_hebo_seq       = np.minimum.accumulate(hebo_seq.y)
 conv_hebo_batch     = np.minimum.accumulate(hebo_batch.y)

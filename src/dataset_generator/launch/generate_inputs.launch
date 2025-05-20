@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="dataset_generator" type="generate_inputs.py" name="generate_inputs" output="screen">
+    <param name="first_scene" value="$(arg from_scene)" />
+  </node>
+</launch>

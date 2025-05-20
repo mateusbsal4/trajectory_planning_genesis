@@ -21,7 +21,7 @@ def publish_transforms(camera_pose):
     static_transformStamped.transform.rotation.z = quat[2]
     static_transformStamped.transform.rotation.w = quat[3]
     broadcaster.sendTransform(static_transformStamped)
-    #Define and publish the camera frame
+
     static_transformStamped.header.stamp = rospy.Time.now()
     static_transformStamped.header.frame_id = "world"
     static_transformStamped.child_frame_id = "camera_depth_optical_frame"

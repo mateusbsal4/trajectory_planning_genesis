@@ -9,15 +9,30 @@ import matplotlib.pyplot as plt
 import os
 import sys
 import csv
+import logging
 from std_msgs.msg import Float32MultiArray
 
 sys.path.append("/home/geriatronics/miniconda3/envs/ros_perception/lib/python3.9/site-packages")
 from hebo.optimizers.hebo import HEBO
 from hebo.design_space.design_space import DesignSpace
 
+
+
 # Global variables to store costs
 global_cost = None
 individual_costs = None
+
+
+logger = logging.getLogger("bayesian_optimizer")
+logger.setLevel(logging.INFO)
+# Create a file handler
+file_handler = logging.FileHandler("/home/geriatronics/pmaf_ws/src/dataset_generator/logs/optimizer.log", mode='a')
+file_handler.setLevel(logging.INFO)
+# Create a formatter and add it to the handler
+formatter = logging.Formatter('%(asctime)s - %(message)s')
+file_handler.setFormatter(formatter)    
+# Add the handler to the logger
+logger.addHandler(file_handler)
 
 def cost_callback(msg):
     """
@@ -27,7 +42,7 @@ def cost_callback(msg):
     individual_costs = msg.data  # Store the list of costs
     global_cost = sum(individual_costs)  # Compute the total cost as the sum of individual costs
 
-def launch_experiment(scene, include_in_dataset):
+def launch_experiment(ns, scene, include_in_dataset):
     """
     Launch the IK_pmaf node and the planner node using their launch files.
     """
@@ -36,7 +51,10 @@ def launch_experiment(scene, include_in_dataset):
 
     # Launch IK node with the scene parameter
     ik_launch_file = "/home/geriatronics/pmaf_ws/src/genesis_inverse_kinematics/launch/ik_genesis.launch"
-    ik_args = [f"scene:={scene}", f"dataset_scene:={'true' if include_in_dataset else 'false'}"]  # Convert boolean to string
+    ik_args = [
+        f"scene:={scene}", 
+        f"dataset_scene:={'true' if include_in_dataset else 'false'}"
+    ]
     ik_parent = roslaunch.parent.ROSLaunchParent(uuid, [(ik_launch_file, ik_args)])
     ik_parent.start()
     rospy.loginfo(f"IK node launched with scene: {scene}")
@@ -44,7 +62,8 @@ def launch_experiment(scene, include_in_dataset):
 
     # Launch planner node
     planner_launch_file = "/home/geriatronics/pmaf_ws/src/multi_agent_vector_fields/launch/main_demo.launch"
-    planner_parent = roslaunch.parent.ROSLaunchParent(uuid, [planner_launch_file])
+    planner_args = []
+    planner_parent = roslaunch.parent.ROSLaunchParent(uuid, [(planner_launch_file, planner_args)])
     planner_parent.start()
     rospy.loginfo("Planner node launched.")
     #time.sleep(10)  # Wait to ensure the planner node is running
@@ -55,15 +74,15 @@ def shutdown_experiment(ik_parent, planner_parent):
     planner_parent.shutdown()
     rospy.loginfo("Experiment nodes shutdown.")
 
-def run_experiment(scene, include_in_dataset):
+def run_experiment(ns, scene, include_in_dataset):
     """
-    Launch the experiment nodes, wxyait for a cost message, and return the total cost.
+    Launch the experiment nodes, wait for a cost message, and return the total cost.
     """
     global global_cost, individual_costs
     global_cost = None
     individual_costs = None
-    ik_parent, planner_parent = launch_experiment(scene, include_in_dataset)
-    cost_sub = rospy.Subscriber("/cost", Float32MultiArray, cost_callback)
+    ik_parent, planner_parent = launch_experiment(ns, scene, include_in_dataset)
+    cost_sub = rospy.Subscriber("cost", Float32MultiArray, cost_callback)
     wait_time = 0
     print("Ik called")
     while global_cost is None:
@@ -80,13 +99,17 @@ def run_experiment(scene, include_in_dataset):
 if __name__ == "__main__":
     rospy.init_node("bayes_optimizer_node", anonymous=True)
     scene = rospy.get_param("~scene")
+    ns = rospy.get_param('~ns', '')
+    if not ns:
+        rospy.logerr("No namespace provided (param '~ns' is empty)!  Exiting.")
+        sys.exit(1)
     include_in_dataset = rospy.get_param("~include_in_dataset", False)
     # Define a HEBO design space
     design_list = [{'name': 'detect_shell_rad', 'type': 'num', 'lb': 0.25, 'ub': 0.75}]
     for name, lb, ub in [
         ('k_a_ee', 1.0, 5.0),
         ('k_c_ee', 1.0, 5.0),
-        ('k_r_ee', 1.0, 5.0),
+        ('k_r_ee', 1.0, 5.0),   
         ('k_d_ee', 1.0, 5.0),
         ('k_manip', 1.0, 5.0)
     ]:
@@ -101,7 +124,7 @@ if __name__ == "__main__":
     # Initialize cost tracking
     costs = []
     individual_costs_history = []
-    best_cost = float('inf')
+    best_cost = float('inf')    
     if not include_in_dataset:
         results_base_path = "/home/geriatronics/pmaf_ws/src/planner_optimizer/results/svgp"
         figures_base_path = "/home/geriatronics/pmaf_ws/src/planner_optimizer/figures/svgp"
@@ -117,7 +140,9 @@ if __name__ == "__main__":
     best_it = 0
     it = 0
     for i in range(num_iterations):
+        init_suggestion_instant = time.time()
         rec_x = hebo_batch.suggest(n_suggestions=8)
+        logger.info(f"HEBO acq function optimization time: {time.time() - init_suggestion_instant}")
         #rec_x = hebo_batch.suggest(n_suggestions=2)
         rospy.loginfo("Iteration {}: Suggested parameters batch:".format(i))
         cost_list = []
@@ -141,7 +166,7 @@ if __name__ == "__main__":
             }
             with open(temp_yaml_file, 'w') as f:
                 yaml.dump(param_dict, f)
-            total_cost, indiv_costs = run_experiment(scene, include_in_dataset)
+            total_cost, indiv_costs = run_experiment(ns, scene, include_in_dataset)
             cost_list.append([total_cost])
             individual_costs_batch.append(indiv_costs)
             if total_cost < best_cost:
@@ -160,7 +185,9 @@ if __name__ == "__main__":
                 rospy.loginfo(f"Best parameters and cost saved to {output_yaml_file}")
             it += 1
         cost_array = np.array(cost_list)
+        gp_fitting_init = time.time()
         hebo_batch.observe(rec_x, cost_array)
+        logger.info(f"HEBO gp fitting time: {time.time() - gp_fitting_init}")
         if not include_in_dataset:
             # Save the global cost evolution plot
             cost_plot_path = os.path.join(figures_path, "cost_evolution.png")

@@ -1,10 +1,16 @@
 <launch>
-    <group ns="perception">
+    <arg name="ns" default="" />
+    <arg name="save_cloud" default="false" /> 
+    <arg name="scene" default="" /> 
+    <group ns="$(arg ns)">
         <arg name="pipeline_config_file" value="$(find percept)/config/sim_pipeline_conf.yaml"/>
         <rosparam file="$(arg pipeline_config_file)" command="load"/>
-
-        <node name="perception_node" pkg="percept" type="sim_pipeline.py" output="screen"/>    
-        <node name="perception_rviz" pkg="rviz" type="rviz" args="-d $(find percept)/rviz/perception.rviz"/>
+        <node name="perception_node" pkg="percept" type="sim_pipeline.py" output="screen">
+          <param name="ns" value="$(arg ns)"/>
+          <param name="save_cloud" value="$(arg save_cloud)"/> 
+          <param name="scene" value="$(arg scene)"/> 
+        </node>
+        <!--<node name="perception_rviz" pkg="rviz" type="rviz" args="-d $(find percept)/rviz/perception.rviz"/> -->
     </group>
 </launch>
 

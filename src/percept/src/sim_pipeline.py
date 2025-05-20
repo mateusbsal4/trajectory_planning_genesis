@@ -8,8 +8,7 @@ import utils.troubleshoot as troubleshoot
 import numpy as np
 import cupoch as cph  # Assuming cupoch is imported as cph
 
-import tf2_ros
-#import geometry_msgs.msg
+import tf2_ros  
 from geometry_msgs.msg import PoseStamped, TransformStamped
 from sensor_msgs.msg import JointState
 
@@ -29,10 +28,10 @@ class SimPerceptionPipeline(PerceptionPipeline):
         self.load_and_setup_pipeline_configs()
 
         # Define subscriber for robot´s AABB
-        self.aabb_sub = rospy.Subscriber('/robot_aabb', Float32MultiArray, self.aabb_callback)
+        self.aabb_sub = rospy.Subscriber('robot_aabb', Float32MultiArray, self.aabb_callback)
 
         # Define publisher for voxel spheres
-        self.voxel_grid_pub = rospy.Publisher('/scene_voxels', Float64MultiArray, queue_size=1)
+        self.voxel_grid_pub = rospy.Publisher('scene_voxels', Float64MultiArray, queue_size=1)
 
         # finish setup
         super().setup()
@@ -60,6 +59,8 @@ class SimPerceptionPipeline(PerceptionPipeline):
 class SimPerceptionNode(PerceptionNode):
     def __init__(self):
         rospy.init_node('sim_perception_node')
+        self.save_cloud = rospy.get_param("~save_cloud")
+        self.scene = rospy.get_param("~scene")
         super().__init__()
         
         # Initialize pipeline
@@ -70,7 +71,7 @@ class SimPerceptionNode(PerceptionNode):
     def setup_ros_subscribers(self):
         rospy.loginfo("Setting up subscribers")
         self.ptcloud_subscriber = rospy.Subscriber(
-            '/camera/depth/points', PointCloud2, self.static_camera_callback)
+            'camera/depth/points', PointCloud2, self.static_camera_callback)
         self.tfBuffer = tf2_ros.Buffer()
         self.listener = tf2_ros.TransformListener(self.tfBuffer)
 
@@ -87,9 +88,10 @@ class SimPerceptionNode(PerceptionNode):
             
             # Create the 4x4 transformation matrix 
             tf_matrix = create_tf_matrix_from_msg(transform)
-            #print("tf_matrix", tf_matrix)
+            
             # Submit the pipeline task with the single point cloud
             future = self.executor.submit(self.run_pipeline, self.pointcloud_buffer, tf_matrix)
+
 
 def main():
     node = SimPerceptionNode()
@@ -102,3 +104,4 @@ if __name__ == "__main__":
         rospy.spin()
     except rospy.ROSInterruptException:
         node.shutdown()
+

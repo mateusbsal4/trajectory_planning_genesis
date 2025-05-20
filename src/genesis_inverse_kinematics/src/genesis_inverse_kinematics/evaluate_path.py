@@ -1,4 +1,5 @@
 import numpy as np
+
 def compute_cost(TCP_path, min_dists, obs_radius, goal_pos):
     C_cl = 0  # clearance cost
     C_pl = 0  # path length cost 
@@ -29,7 +30,7 @@ def compute_cost(TCP_path, min_dists, obs_radius, goal_pos):
         if 0 < i < len(TCP_path) - 1:
             C_sm += np.linalg.norm(TCP_path[i + 1] - 2 * TCP_pos + TCP_path[i - 1]) ** 2
     C_cl /= len(TCP_path)  # normalize clearance cost 
-    C_sm /= len(TCP_path)  #normalize smoothness cost 
+    C_sm /= len(TCP_path)  #nsormalize smoothness cost 
     C_gd = 10*np.linalg.norm(TCP_path[-1] - goal_pos)  # reach goal cost
     C_sm *= 0.01
     C_cl *= 0.03

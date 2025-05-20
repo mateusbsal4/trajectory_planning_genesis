@@ -11,6 +11,7 @@ catkin_package()
 ## Install the Python script(s) in scripts/ into the usual ROS bin directory
 catkin_install_python(PROGRAMS
   scripts/generate_labels.py
+  scripts/generate_inputs.py
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
 

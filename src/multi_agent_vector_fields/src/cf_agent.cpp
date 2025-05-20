@@ -360,8 +360,8 @@ void CfAgent::cfPlanner(const std::vector<Eigen::Vector3d> &manip_map,
     }
     repelForce(obstacles, k_repel);
     attractorForce(k_attr, k_damp, k_goal_scale);
-    ROS_INFO("Agent force: [%.2f, %.2f, %.2f]", force_.x(), force_.y(), force_.z());
-    ROS_INFO("Agent velocity: [%.2f, %.2f, %.2f]", vel_.x(), vel_.y(), vel_.z());
+    //ROS_INFO("Agent force: [%.2f, %.2f, %.2f]", force_.x(), force_.y(), force_.z());
+    //ROS_INFO("Agent velocity: [%.2f, %.2f, %.2f]", vel_.x(), vel_.y(), vel_.z());
     updatePositionAndVelocity(delta_t);
 
   }

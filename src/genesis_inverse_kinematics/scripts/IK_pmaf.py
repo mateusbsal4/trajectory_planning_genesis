@@ -4,6 +4,7 @@ import torch
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 import rospy
+import logging 
 import time
 from geometry_msgs.msg import Point, PoseStamped
 from sensor_msgs.msg import CameraInfo, Image, JointState
@@ -29,27 +30,42 @@ class IK_Controller:
         self.dataset_scene = rospy.get_param("~dataset_scene", False)  # Default to False
         self.start_pos_pub = rospy.Publisher("start_position", Point, queue_size=1)
         self.goal_pos_pub = rospy.Publisher("goal_position", Point, queue_size=1)
+        self.tcp_pos_pub = rospy.Publisher("tcp_pos", Point, queue_size=1)
         self.current_pos_pub = rospy.Publisher("current_position", Point, queue_size=1) 
         self.target_pos_sub = rospy.Subscriber("agent_position", Point, self.target_pos_callback)
-        self.depth_image_pub = rospy.Publisher('/camera/depth/image_rect_raw', Image, queue_size=1)
-        self.camera_info_pub = rospy.Publisher("/camera/depth/camera_info", CameraInfo, queue_size=1)
-        self.aabb_pub = rospy.Publisher('/robot_aabb', Float32MultiArray, queue_size=1)
-        self.voxel_grid_sub = rospy.Subscriber("/scene_voxels", Float64MultiArray, self.voxel_grid_callback)
-        #self.cost_pub = rospy.Publisher("/cost", Float32, queue_size=1)
-        self.cost_pub = rospy.Publisher("/cost", Float32MultiArray, queue_size=1)
+        self.depth_image_pub = rospy.Publisher('camera/depth/image_rect_raw', Image, queue_size=1)
+        self.camera_info_pub = rospy.Publisher("camera/depth/camera_info", CameraInfo, queue_size=1)
+        self.aabb_pub = rospy.Publisher('robot_aabb', Float32MultiArray, queue_size=1)
+        self.voxel_grid_sub = rospy.Subscriber("scene_voxels", Float64MultiArray, self.voxel_grid_callback)
+        #self.cost_pub = rospy.Publisher("cost", Float32, queue_size=1)
+        self.cost_pub = rospy.Publisher("cost", Float32MultiArray, queue_size=1)
         self.rate = rospy.Rate(10)  
+        # Setup logging
+        self.logger = logging.getLogger("genesis_logger")
+        self.logger.setLevel(logging.INFO)
+        file_handler = logging.FileHandler("/home/geriatronics/pmaf_ws/src/dataset_generator/logs/genesis.log", mode='a')
+        file_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter('%(asctime)s - %(message)s')
+        file_handler.setFormatter(formatter)    
+        self.logger.addHandler(file_handler)
+        
         # Genesis initialization
         gs.init(backend=gs.gpu)
         # Setup the task
+        start = time.time()
         if self.recreate:    #recreate a specific scene
             print("Recreating scene from file: ", self.scene_config)
             self.scene, self.franka, self.cam, self.target_pos = recreate_task(self.scene_config + ".yaml", from_dataset = self.dataset_scene)
         else:           #setup a new random scene
             self.scene, self.franka, self.cam, self.target_pos = create_scene(randomize = True)
+        scene_built = time.time()
+        self.logger.info(f"Scene creation time [sec]: {scene_built - start}")
         goal_pos_TCP = self.target_pos.copy()               #TCP position - midpoint of the two gripper fingers
         self.goal_pos = np.array([goal_pos_TCP[0], goal_pos_TCP[1], goal_pos_TCP[2] + 0.10365])  # Gripper base position - 0.1m above the TCP position
         # Build the scene
-        self.scene.build()  
+        self.scene.build()
+        #self.scene.build(compile_kernels=False)  
+        self.logger.info(f"Scene build time [sec]: {time.time() - scene_built}")
         cam_pose = np.array([[ 0, 0, 1, 3.0],
                              [ 1, 0, 0, 0.5],
                              [ 0, 1, 0, 1.5],
@@ -74,6 +90,7 @@ class IK_Controller:
         self.goal_pos_msg.y = self.goal_pos[1]
         self.goal_pos_msg.z = self.goal_pos[2]
         self.goal_pos_pub.publish(self.goal_pos_msg)
+        
         # Render the depth image of the scene
         _, self.depth_img, _, _ = self.cam.render(depth=True, segmentation=True, normal=True)  
         # Draw goal position for the hand and TCP frames
@@ -197,6 +214,14 @@ class IK_Controller:
                 current_pos_msg.z = ee_pos[2]
                 self.current_pos_pub.publish(current_pos_msg)
 
+                #Publish the TCP pos 
+                tcp_pos_msg = Point()
+                tcp_pos_msg.x = TCP_pos[0]
+                tcp_pos_msg.y = TCP_pos[1]
+                tcp_pos_msg.z = TCP_pos[2]
+                self.tcp_pos_pub.publish(tcp_pos_msg)
+
+
                 self.TCP_path.append(ee_pos)
                 self.prev_eepos = ee_pos
 
@@ -222,7 +247,7 @@ class IK_Controller:
                 if started_recording:
                     self.cam.render()             
                 planning_time = time.time() - self.start_time
-                if (np.allclose(ee_pos, self.goal_pos, atol=1e-3) or (planning_time >= 50 and not self.evaluate) 
+                if (np.allclose(ee_pos, self.goal_pos, atol=1e-3) or (planning_time >= 60 and not self.evaluate) 
                 or len(self.franka.detect_collision()) > 0):            # planning stops upon reaching the goal position, after 30s (except when evaluating) or if the robot collides
                     costs = compute_cost(self.TCP_path, self.min_dists, self.obs_radius, self.goal_pos)
                     msg = Float32MultiArray()

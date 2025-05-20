@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="planner_optimizer" type="check_labels.py" name="check_labels" output="screen">
+    <param name="first_scene" value="$(arg from_scene)" />
+  </node>
+</launch>

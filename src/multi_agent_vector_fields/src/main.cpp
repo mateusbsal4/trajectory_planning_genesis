@@ -10,6 +10,7 @@
 #include "multi_agent_vector_fields/cf_manager.h"
 #include "multi_agent_vector_fields/obstacle.h"
 #include <cassert> 
+#include <chrono>
 
 using namespace ghostplanner::cfplanner;
 Eigen::Vector3d start_pos, goal_pos, current_pos;
@@ -203,11 +204,11 @@ int main(int argc, char** argv) {
 
 
     //std::vector<Obstacle> obstacles = readObstacles(obstacles_yaml["obstacles"]);
-    for (const auto& obs : obstacles)
-    {
+    //for (const auto& obs : obstacles)
+    //{
         //ROS_INFO("Obstacle: %s, Position: [%.2f, %.2f, %.2f], Radius: %.2f", obs.getName().c_str(),
         //         obs.getPosition().x(), obs.getPosition().y(), obs.getPosition().z(), obs.getRadius());
-    }
+    //}
 
     double detect_shell_rad, agent_mass, agent_radius, velocity_max, approach_dist;
     std::vector<double> k_a_ee, k_c_ee, k_r_ee, k_r_force, k_d_ee, k_manip;
@@ -283,6 +284,10 @@ int main(int argc, char** argv) {
             // }
 
             }
+            //static size_t previous_obstacle_size = obstacles.size();
+            //std::cout << "Previous obstacles size: " << previous_obstacle_size << std::endl;
+            // Assert that the obstacle size remains the same
+            //assert(obstacles.size() == previous_obstacle_size && "Obstacle size has changed!");
             // visualize obstacles 
             for (size_t i = 0; i < obstacles.size(); ++i) 
             {
