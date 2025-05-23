@@ -1,0 +1,22 @@
+name: pointnet_env
+channels:
+  - pytorch
+  - nvidia
+  - defaults
+dependencies:
+  - python=3.10
+  - pytorch
+  - torchvision
+  - torchaudio
+  - pytorch-cuda=12.1
+  - pip
+  - pip:
+      - torch-scatter -f https://data.pyg.org/whl/torch-2.1.0+cu121.html
+      - torch-sparse -f https://data.pyg.org/whl/torch-2.1.0+cu121.html
+      - torch-cluster -f https://data.pyg.org/whl/torch-2.1.0+cu121.html
+      - git+https://github.com/pyg-team/pytorch_geometric.git
+      - plyfile
+      - tqdm
+      - wandb
+      - ipykernel
+      - jupyter

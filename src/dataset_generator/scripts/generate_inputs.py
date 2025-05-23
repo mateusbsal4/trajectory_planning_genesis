@@ -28,7 +28,7 @@ def launch_scene(scene: str):
     )
     ik_parent.start()
     rospy.loginfo(f"Launched IK node for scene '{scene}'")
-    scene_path = f"/home/geriatronics/pmaf_ws/src/dataset_generator/data/inputs/{scene}.ply"
+    scene_path = f"/home/geriatronics/pmaf_ws/src/dataset_generator/data/inputs/{scene}.txt"
     while not os.path.exists(scene_path):
         time.sleep(0.1)
 

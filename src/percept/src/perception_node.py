@@ -39,14 +39,18 @@ class PerceptionNode:
                 
                 # Convert pcd (cph.geometry.PointCloud) to numpy array
                 points = np.asarray(pcd.points.cpu())
-                # Create Open3D point cloud from NumPy array
-                scene_path = f"/home/geriatronics/pmaf_ws/src/dataset_generator/data/inputs/{self.scene}.ply"
-                o3d_pcd = o3d.geometry.PointCloud()
-                o3d_pcd.points = o3d.utility.Vector3dVector(points)
 
-                # Save and optionally visualize
-                o3d.io.write_point_cloud(scene_path, o3d_pcd)
-                #o3d.visualization.draw_geometries([o3d_pcd])
+                ## Create Open3D point cloud from NumPy array
+                #scene_path = f"/home/geriatronics/pmaf_ws/src/dataset_generator/data/inputs/{self.scene}.ply"
+                #o3d_pcd = o3d.geometry.PointCloud()
+                #o3d_pcd.points = o3d.utility.Vector3dVector(points)
+                ## Save and optionally visualize
+                #o3d.io.write_point_cloud(scene_path, o3d_pcd)
+                ##o3d.visualization.draw_geometries([o3d_pcd])
+
+                # Save as a .txt with one "x y z" per line:
+                scene_path = f"/home/geriatronics/pmaf_ws/src/dataset_generator/data/inputs/{self.scene}.txt"
+                np.savetxt(scene_path, points, fmt="%.6f")
 
                 rospy.loginfo(f"Point cloud saved to {scene_path}")
                 rospy.signal_shutdown("Saved cloud; exiting")

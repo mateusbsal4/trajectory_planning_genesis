@@ -124,8 +124,8 @@ class PerceptionPipeline():
 
     def run_pipeline(self, pointcloud_msg, tf_matrix, log_performance: bool = False):
         start = time.time()
-        pcd         = self.parse_pointcloud(pointcloud_msg, tf_matrix, downsample=True)
-        pcd         = self.perform_robot_body_subtraction(pcd)
+        pcd = self.parse_pointcloud(pointcloud_msg, tf_matrix, downsample=True)
+        pcd = self.perform_robot_body_subtraction(pcd)
         voxel_grid  = self.perform_voxelization(pcd)
         primitives  = self.convert_voxels_to_primitives(voxel_grid)
         self.publish_primitives(primitives)
